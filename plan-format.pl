@@ -9,6 +9,7 @@ use Data::Dumper;
 sub getLvl($$$);
 
 my $traceFile='DWDB_ora_63389.trc';
+$traceFile='/home/jkstill/oracle/merge-vs-bulk/merge-vs-bulk/oravm1_ora_32222_MERGE-TEST.trc';
 
 open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
@@ -37,7 +38,6 @@ while(<F>) {
 
 }
 
-
 #foreach my $cursorID ( keys %sql ) {
 #	print "\n\nCursor: $cursorID\n";
 #	foreach my $el ( @{$sql{$cursorID}} ) {
@@ -50,8 +50,23 @@ while(<F>) {
 
 open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
-my @data=<F>;
-chomp @data;
+# this method takes too much memory for large files
+# easier and faster to just scan the file again
+# on a 3.6 million line file this method took minutes before the OS killed it
+# the loop takes a second or so
+#my @data=grep(!/(?:WAIT #|FETCH #|\*\*\*|^$)/,<F>);
+#
+
+my @data=();
+
+while(<F>) {
+	next unless /^STAT #/;
+	chomp $_;
+	push @data, $_;
+}
+
+#print Dumper(\@data);
+#exit;
 
 my %plans=();
 
@@ -116,7 +131,7 @@ foreach my $cursorID ( keys %sql ) {
 }
 
 
-sub getLvl {
+sub getLvl ($$$){
 
 	my ($treeRef, $cursorID, $id) = @_;
 	my $level=1;
