@@ -5,11 +5,17 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Getopt::Long;
 
 sub getLvl($$$);
 
-my $traceFile='DWDB_ora_63389.trc';
-#$traceFile='/home/jkstill/oracle/merge-vs-bulk/merge-vs-bulk/oravm1_ora_32222_MERGE-TEST.trc';
+my $traceFile='- no file specified';
+
+GetOptions ("file=s" => \$traceFile) or die "usage: $0 --file <filename>\n";
+
+unless ( -r $traceFile ) {
+	die "cannot find file $traceFile\n";
+}
 
 open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
