@@ -31,16 +31,15 @@ while(<F>) {
 }
 
 
-foreach my $cursorID ( keys %sql ) {
-	print "\n\nCursor: $cursorID\n";
-	foreach my $el ( @{$sql{$cursorID}} ) {
-		print "$el\n";
-	}
-}
+#foreach my $cursorID ( keys %sql ) {
+#	print "\n\nCursor: $cursorID\n";
+#	foreach my $el ( @{$sql{$cursorID}} ) {
+#		print "$el\n";
+#	}
+#}
 
 
 # now get the STAT lines
-
 
 open F,'<','DWDB_ora_63389.trc' || die "cannot open trace file - $! \n";
 
@@ -53,7 +52,7 @@ foreach my $cursorID ( keys %sql ) {
 	push @{$plans{$cursorID}}, grep(/^STAT $cursorID/,@data);
 }
 
-print Dumper(\%plans);
+#print Dumper(\%plans);
 
 foreach my $cursorID ( keys %sql ) {
 	if ( not exists $plans{$cursorID} ) {
@@ -61,7 +60,9 @@ foreach my $cursorID ( keys %sql ) {
 		next;
 	}
 
+	print '#' x 120, "\n";
 	print "\nCursor: $cursorID:\n\n";
+	print "SQL:", join("\n", @{$sql{$cursorID}}), "\n\n";
 
 	foreach my $statLine ( @{$plans{$cursorID}} ) {
 		my @lineElements = split(/\s+/, $statLine);
@@ -74,14 +75,17 @@ foreach my $cursorID ( keys %sql ) {
 
 		my $planLine = join(' ', @lineElements);
 		$planLine =~ s/^op='(.*)'$/$1/;
+		my $planOp = $planLine;
+		$planOp =~ s/(.*)\s+\(.*\)/$1/;
 
 		#print "indent: $indent\n";
-		printf( "%04d %s %s \n", $lineNumber, ' ' x ($indent * 2 ), $planLine);
+		#printf( "%04d %s %s \n", $lineNumber, ' ' x ($indent * 2 ), $planOp);
+		printf( "%04d "  ,$lineNumber );
+		print ' ' x ($indent * 1 ), "$planOp\n";
 		#print $lineNumber, ' ' x ($indent * 2 ), $planLine, "\n";
 
 	}
 }
-
 
 
 
