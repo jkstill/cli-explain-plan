@@ -9,7 +9,7 @@ use Data::Dumper;
 sub getLvl($$$);
 
 my $traceFile='DWDB_ora_63389.trc';
-$traceFile='/home/jkstill/oracle/merge-vs-bulk/merge-vs-bulk/oravm1_ora_32222_MERGE-TEST.trc';
+#$traceFile='/home/jkstill/oracle/merge-vs-bulk/merge-vs-bulk/oravm1_ora_32222_MERGE-TEST.trc';
 
 open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
@@ -55,6 +55,10 @@ open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 # on a 3.6 million line file this method took minutes before the OS killed it
 # the loop takes a second or so
 #my @data=grep(!/(?:WAIT #|FETCH #|\*\*\*|^$)/,<F>);
+# further test with file slurp
+# using a direct grep without the 'not' is much faster, 
+# but still not as fast as the loop
+# @data=grep(/^STAT #/,<F>);
 #
 
 my @data=();
@@ -93,8 +97,10 @@ foreach my $line (@stat) {
 }
 
 #print Dumper(\%plans);
+#print Dumper(\%sql);
+#exit;
 
-foreach my $cursorID ( keys %sql ) {
+foreach my $cursorID ( sort keys %sql ) {
 	if ( not exists $plans{$cursorID} ) {
 		warn "\nPlan not found for cursor $cursorID\n\n";
 		next;
@@ -103,6 +109,11 @@ foreach my $cursorID ( keys %sql ) {
 	print '#' x 120, "\n";
 	print "\nCursor: $cursorID:\n\n";
 	print "SQL:", join("\n", @{$sql{$cursorID}}), "\n\n";
+
+	printf( "%-6s "  ,'Line#' );
+	printf( "%-80s", substr('Operation' . ' ' x 80,0,80));
+	printf( " %12s  %9s %9s %9s %-9s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
+	printf( "%6s %80s %12s  %9s %9s %9s %-9s\n", '=' x 6, '=' x 80, '=' x 12, '=' x 9 , '=' x 9 , '=' x 9 , '=' x 9 );
 
 	foreach my $statLine ( @{$plans{$cursorID}} ) {
 		my @lineElements = split(/\s+/, $statLine);
@@ -117,15 +128,28 @@ foreach my $cursorID ( keys %sql ) {
 		$planLine =~ s/^op='(.*)'$/$1/;
 		my $planOp = $planLine;
 		$planOp =~ s/(.*)\s+\(.*\)/$1/;
+		my $planStats = $planLine;
+		$planStats =~ s/(.*)\s+(\(.*\))/$2/;
+		# remove parens
+		$planStats =~ s/[\(\)]//go;
 
-		#print "indent: $indent\n";
-		#printf( "%04d %s %s \n", $lineNumber, ' ' x ($indent * 2 ), $planOp);
-		
+		my ($lio, $blocksRead, $blocksWritten, $microseconds);
+		my @opStats=split(/\s+/,$planStats);
+
+		($d,$lio) = split(/\=/,$opStats[0]);
+		($d,$blocksRead) = split(/\=/,$opStats[1]);
+		($d,$blocksWritten) = split(/\=/,$opStats[2]);
+		($d,$microseconds) = split(/\=/,$opStats[3]);
+
 		my $level = getLvl(\%tree,$cursorID,$lineNumber);
 
-		printf( "%04d "  ,$lineNumber );
-		print ' ' x ($level * 2 ), "$planOp\n";
-		#print $lineNumber, ' ' x ($indent * 2 ), $planLine, "\n";
+		printf( "%06d "  ,$lineNumber );
+		printf( "%-80s", (' ' x ($level * 2 )) . $planOp);
+		printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
+
+		print "\n";
+
+		#print "stats: $planStats\n";
 
 	}
 }
@@ -134,7 +158,7 @@ foreach my $cursorID ( keys %sql ) {
 sub getLvl ($$$){
 
 	my ($treeRef, $cursorID, $id) = @_;
-	my $level=1;
+	my $level=0;
 	my $currID = $id;
 
 	#print "getLvl: $id\n";
