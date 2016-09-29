@@ -86,7 +86,7 @@ foreach my $line (@stat) {
 	($dummy,$id) = split(/\=/,$idData);
 	($dummy,$pid) = split(/\=/,$pidData);
 
-	print "$cursorID: $id  $pid\n";
+	#print "$cursorID: $id  $pid\n";
 
 	$tree{$cursorID}->{$id} = $pid;
 
