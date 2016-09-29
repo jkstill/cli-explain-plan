@@ -3,7 +3,9 @@
 
 use Data::Dumper;
 
-open F,'<','DWDB_ora_63389.trc' || die "cannot open trace file - $! \n";
+my $traceFile='DWDB_ora_63389.trc';
+
+open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
 my %sql=();
 
@@ -41,7 +43,7 @@ while(<F>) {
 
 # now get the STAT lines
 
-open F,'<','DWDB_ora_63389.trc' || die "cannot open trace file - $! \n";
+open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
 @data=<F>;
 chomp @data;
