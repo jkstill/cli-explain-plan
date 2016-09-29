@@ -1,7 +1,12 @@
 #!/usr/bin/env perl
 #
 
+use strict;
+use warnings;
+
 use Data::Dumper;
+
+sub getLvl($$$);
 
 my $traceFile='DWDB_ora_63389.trc';
 
@@ -45,13 +50,31 @@ while(<F>) {
 
 open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
 
-@data=<F>;
+my @data=<F>;
 chomp @data;
 
 my %plans=();
 
 foreach my $cursorID ( keys %sql ) {
 	push @{$plans{$cursorID}}, grep(/^STAT $cursorID/,@data);
+}
+
+# create tree for indentation levels
+my @stat=grep(/^STAT #/,@data);
+my %tree=();
+
+foreach my $line (@stat) {
+
+	my @a = split(/\s+/, $line);
+	my ($cursorID,$idData, $pidData) = @a[1,2,4];
+	my ($id, $pid, $dummy);	
+	($dummy,$id) = split(/\=/,$idData);
+	($dummy,$pid) = split(/\=/,$pidData);
+
+	print "$cursorID: $id  $pid\n";
+
+	$tree{$cursorID}->{$id} = $pid;
+
 }
 
 #print Dumper(\%plans);
@@ -71,7 +94,7 @@ foreach my $cursorID ( keys %sql ) {
 
 		my ($d,$lineNumber) = split(/\=/,$lineElements[2]);
 		my ($c,$rows) = split(/\=/,$lineElements[3]);
-		my ($e,$indent) = split(/\=/,$lineElements[4]);
+		my ($e,$pid) = split(/\=/,$lineElements[4]);
 
 		for (0 .. 6) { shift @lineElements }
 
@@ -82,12 +105,30 @@ foreach my $cursorID ( keys %sql ) {
 
 		#print "indent: $indent\n";
 		#printf( "%04d %s %s \n", $lineNumber, ' ' x ($indent * 2 ), $planOp);
+		
+		my $level = getLvl(\%tree,$cursorID,$lineNumber);
+
 		printf( "%04d "  ,$lineNumber );
-		print ' ' x ($indent * 1 ), "$planOp\n";
+		print ' ' x ($level * 2 ), "$planOp\n";
 		#print $lineNumber, ' ' x ($indent * 2 ), $planLine, "\n";
 
 	}
 }
 
 
+sub getLvl {
+
+	my ($treeRef, $cursorID, $id) = @_;
+	my $level=1;
+	my $currID = $id;
+
+	#print "getLvl: $id\n";
+
+	while ($treeRef->{$cursorID}{$currID} > 0) {
+		$currID = $treeRef->{$cursorID}{$currID};
+		$level++;
+	}
+
+	$level;
+}
 
