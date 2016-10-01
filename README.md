@@ -8,18 +8,19 @@ A fairly simple command line text based plan formatter that operations on Oracle
 
 Unlike tkprof, this tool does not require a login to the database.
 
+<h3>Changes</h3>
+
+- 2016-09-30 now correctly processes cursor handle reuse in trace files
+
 <h3>To Do</h3>
 
 Currently these things need fixed:
 
 - attribute row source operations only to the stat line that incurred them
-- version cursor IDs - cursor addresses may be reused, and this script does not yet know how to deal with that.
+<strike>- version cursor IDs - cursor addresses may be reused, and this script does not yet know how to deal with that.</strike>
 
 <h3>Example Output</h3>
 
-This example demonstrates the cursor reuse issue.
-
-Both the SQL to be traced and the cursor created by dbms_xplan use the same cursor ID.
 
 
 <blockquote style='border: 2px solid #000;background-color:#D8D8D8;color:#0B0B61; white-space: pre-wrap;'>
