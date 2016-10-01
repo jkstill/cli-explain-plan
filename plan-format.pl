@@ -4,6 +4,8 @@
 # copy plan-format.pl and modify to deal with cursor ID reuse
 # Cursor parsed, executed and closed
 # The next cursor opened may use the same cursor ID
+# 2019-09-30 Jared Still jkstill@gmail.com still@pythian.com
+#            now correctly handles trace files with cursor handle (ID) reuse
 
 use strict;
 use warnings;
