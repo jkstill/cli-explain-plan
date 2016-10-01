@@ -11,7 +11,7 @@ use warnings;
 use Data::Dumper;
 use Getopt::Long;
 
-sub getLvl($$$);
+sub getLvl($$$$);
 
 my $traceFile='- no file specified';
 
@@ -56,14 +56,6 @@ while(<F>) {
 #print Dumper(\%cursorTracking);
 #exit;
 
-#foreach my $cursorID ( keys %sql ) {
-#	print "\n\nCursor: $cursorID\n";
-#	foreach my $el ( @{$sql{$cursorID}} ) {
-#		print "$el\n";
-#	}
-#}
-
-
 # now get the STAT lines
 
 open F,'<',$traceFile || die "cannot open trace file $traceFile - $! \n";
@@ -106,6 +98,8 @@ my %plans=();
 
 =cut 
 
+my %tree=();
+
 foreach my $cursorID ( sort keys %sql ) {
 
 	$cursorUsed{$cursorID}++;
@@ -114,7 +108,7 @@ foreach my $cursorID ( sort keys %sql ) {
 
 	my $prevLineID=0;
 
-	print "Cursor: $cursorID  $cursorUsed{$cursorID}\n";
+	#print "Cursor: $cursorID  $cursorUsed{$cursorID}\n";
 	my ($dummy,$lineID)=(0,0);
 
 	foreach my $statLine ( @statData ) {
@@ -123,118 +117,113 @@ foreach my $cursorID ( sort keys %sql ) {
 		if ($lineID < $prevLineID ) {
 			$cursorUsed{$cursorID}++;
 			$prevLineID=0;	
-			print "Cursor: $cursorID  $cursorUsed{$cursorID}\n";
+			#print "Cursor: $cursorID  $cursorUsed{$cursorID}\n";
 		} else {
 			$prevLineID = $lineID;
 		}
 
-		print "   lineID: $lineID\n";
+		#print "   lineID: $lineID\n";
 
 		#
 		#push @{$plans{$cursorID}->{i}}, grep(/^STAT $cursorID/,@data);
 		push @{$plans{$cursorID}->{$cursorUsed{$cursorID}}}, $statLine;
 
+		# create tree for indentation levels
+		my @a = split(/\s+/, $statLine);
+		my ($idData, $pidData) = @a[2,4];
+		my ($id, $pid);	
+		($dummy,$id) = split(/\=/,$idData);
+		($dummy,$pid) = split(/\=/,$pidData);
+		#print "$cursorID: $id  $pid\n";
+		$tree{$cursorID}->{$cursorUsed{$cursorID}}{$id} = $pid;
+
+
 	}
 
-	#foreach my $i ( 1 .. $cursorTracking{$cursorID} ) {
-		#push @{$plans{$cursorID}->{i}}, grep(/^STAT $cursorID/,@data);
-	#}
 }
 
-#print Dumper(\%plans);
-#exit;
-
-# working properly to this point
-# the following code to capture indentation levels can probably
-# be added to the previous new cursor identification loop
-
-# create tree for indentation levels
-my @stat=grep(/^STAT #/,@data);
-my %tree=();
-
-foreach my $line (@stat) {
-
-	my @a = split(/\s+/, $line);
-	my ($cursorID,$idData, $pidData) = @a[1,2,4];
-	my ($id, $pid, $dummy);	
-	($dummy,$id) = split(/\=/,$idData);
-	($dummy,$pid) = split(/\=/,$pidData);
-
-	#print "$cursorID: $id  $pid\n";
-
-	$tree{$cursorID}->{$id} = $pid;
-
-}
+%cursorUsed=();
 
 #print Dumper(\%plans);
+#print Dumper(\%tree);
 #print Dumper(\%sql);
+
+#print join("\n",sort keys %sql),"\n";
+#print Dumper(\%cursorTracking);
 #exit;
+
 
 foreach my $cursorID ( sort keys %sql ) {
-	if ( not exists $plans{$cursorID} ) {
-		warn "\nPlan not found for cursor $cursorID\n\n";
-		next;
-	}
 
-	print '#' x 120, "\n";
-	print "\nCursor: $cursorID:\n\n";
-	print "SQL:", join("\n", @{$sql{$cursorID}}), "\n\n";
 
-	printf( "%-6s "  ,'Line#' );
-	printf( "%-80s", substr('Operation' . ' ' x 80,0,80));
-	printf( " %12s  %9s %9s %9s %-9s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
-	printf( "%6s %80s %12s  %9s %9s %9s %-9s\n", '=' x 6, '=' x 80, '=' x 12, '=' x 9 , '=' x 9 , '=' x 9 , '=' x 9 );
+	foreach my $cursorChild ( 1 .. $cursorTracking{$cursorID} ) {
 
-	foreach my $statLine ( @{$plans{$cursorID}} ) {
-		my @lineElements = split(/\s+/, $statLine);
+		#print "   CursorChild: $cursorChild\n";
+		
+		if ( not exists $plans{$cursorID}->{$cursorChild} ) {
+			warn "\nPlan not found for cursor $cursorID - $cursorTracking{$cursorChild}\n\n";
+			next;
+		}
 
-		my ($d,$lineNumber) = split(/\=/,$lineElements[2]);
-		my ($c,$rows) = split(/\=/,$lineElements[3]);
-		my ($e,$pid) = split(/\=/,$lineElements[4]);
+		print '#' x 120, "\n";
+		print "\nCursor: ${cursorID}-${cursorChild}:\n\n";
+		print "SQL:", join("\n", @{$sql{$cursorID}->{$cursorChild}}), "\n\n";
 
-		for (0 .. 6) { shift @lineElements }
+		printf( "%-6s "  ,'Line#' );
+		printf( "%-80s", substr('Operation' . ' ' x 80,0,80));
+		printf( " %12s  %9s %9s %9s %-9s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
+		printf( "%6s %80s %12s  %9s %9s %9s %-9s\n", '=' x 6, '=' x 80, '=' x 12, '=' x 9 , '=' x 9 , '=' x 9 , '=' x 9 );
 
-		my $planLine = join(' ', @lineElements);
-		$planLine =~ s/^op='(.*)'$/$1/;
-		my $planOp = $planLine;
-		$planOp =~ s/(.*)\s+\(.*\)/$1/;
-		my $planStats = $planLine;
-		$planStats =~ s/(.*)\s+(\(.*\))/$2/;
-		# remove parens
-		$planStats =~ s/[\(\)]//go;
+		foreach my $statLine ( @{$plans{$cursorID}->{$cursorChild}} ) {
+			my @lineElements = split(/\s+/, $statLine);
+	
+			my ($d,$lineNumber) = split(/\=/,$lineElements[2]);
+			my ($c,$rows) = split(/\=/,$lineElements[3]);
+			my ($e,$pid) = split(/\=/,$lineElements[4]);
 
-		my ($lio, $blocksRead, $blocksWritten, $microseconds);
-		my @opStats=split(/\s+/,$planStats);
+			for (0 .. 6) { shift @lineElements }
 
-		($d,$lio) = split(/\=/,$opStats[0]);
-		($d,$blocksRead) = split(/\=/,$opStats[1]);
-		($d,$blocksWritten) = split(/\=/,$opStats[2]);
-		($d,$microseconds) = split(/\=/,$opStats[3]);
+			my $planLine = join(' ', @lineElements);
+			$planLine =~ s/^op='(.*)'$/$1/;
+			my $planOp = $planLine;
+			$planOp =~ s/(.*)\s+\(.*\)/$1/;
+			my $planStats = $planLine;
+			$planStats =~ s/(.*)\s+(\(.*\))/$2/;
+			# remove parens
+			$planStats =~ s/[\(\)]//go;
 
-		my $level = getLvl(\%tree,$cursorID,$lineNumber);
+			my ($lio, $blocksRead, $blocksWritten, $microseconds);
+			my @opStats=split(/\s+/,$planStats);
 
-		printf( "%06d "  ,$lineNumber );
-		printf( "%-80s", (' ' x ($level * 2 )) . $planOp);
-		printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
+			($d,$lio) = split(/\=/,$opStats[0]);
+			($d,$blocksRead) = split(/\=/,$opStats[1]);
+			($d,$blocksWritten) = split(/\=/,$opStats[2]);
+			($d,$microseconds) = split(/\=/,$opStats[3]);
 
-		print "\n";
+			my $level = getLvl(\%tree,$cursorID,$cursorChild,$lineNumber);
 
-		#print "stats: $planStats\n";
+			printf( "%06d "  ,$lineNumber );
+			printf( "%-80s", (' ' x ($level * 2 )) . $planOp);
+			printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
 
+			print "\n";
+
+			#print "stats: $planStats\n";
+		}
 	}
 }
 
 
-sub getLvl ($$$){
+sub getLvl ($$$$){
 
-	my ($treeRef, $cursorID, $id) = @_;
+	my ($treeRef, $cursorID, $cursorChild, $id) = @_;
 	my $level=0;
 	my $currID = $id;
 
 	#print "getLvl: $id\n";
 
-	while ($treeRef->{$cursorID}{$currID} > 0) {
-		$currID = $treeRef->{$cursorID}{$currID};
+	while ($treeRef->{$cursorID}{$cursorChild}{$currID} > 0) {
+		$currID = $treeRef->{$cursorID}{$cursorChild}{$currID};
 		$level++;
 	}
 
