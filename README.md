@@ -89,7 +89,6 @@ Line#  Operation                                                                
 000044                   INDEX UNIQUE SCAN SYS_C0085925                                            0          0         0         0   0.00
 000045                 TABLE ACCESS BY INDEX ROWID MY_BILL_BATCH                                   0          0         0         0   0.00
 000046               TABLE ACCESS FULL MY_BILL_BATCH                                        10938310     201348         0         0   2.04
-000001 COLLECTION ITERATOR PICKLER FETCH DISPLAY_CURSOR                                          279          3         0         0   0.10
 ########################################################################################################################
 
 
