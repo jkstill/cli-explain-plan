@@ -163,7 +163,7 @@ foreach my $cursorID ( sort keys %sql ) {
 		#print "   CursorChild: $cursorChild\n";
 		
 		if ( not exists $plans{$cursorID}->{$cursorChild} ) {
-			warn "\nPlan not found for cursor $cursorID - $cursorTracking{$cursorChild}\n\n";
+			warn "\nPlan not found for cursor $cursorID - $cursorChild\n\n";
 			next;
 		}
 
