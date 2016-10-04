@@ -16,8 +16,16 @@ use Getopt::Long;
 sub getLvl($$$$);
 
 my $traceFile='- no file specified';
+my $opLineLen=80;
+my $help=0;
 
-GetOptions ("file=s" => \$traceFile) or die "usage: $0 --file <filename>\n";
+GetOptions (
+		"file=s" => \$traceFile,
+		"op-line-len=i" => \$opLineLen,
+		"h|help!" => \$help
+) or die usage(1);
+
+usage(0) if $help;
 
 unless ( -r $traceFile ) {
 	die "cannot find file $traceFile\n";
@@ -172,9 +180,9 @@ foreach my $cursorID ( sort keys %sql ) {
 		print "SQL:", join("\n", @{$sql{$cursorID}->{$cursorChild}}), "\n\n";
 
 		printf( "%-6s "  ,'Line#' );
-		printf( "%-80s", substr('Operation' . ' ' x 80,0,80));
+		printf( "%-${opLineLen}s", substr('Operation' . ' ' x $opLineLen,0,$opLineLen));
 		printf( " %12s  %9s %9s %9s %-9s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
-		printf( "%6s %80s %12s  %9s %9s %9s %-9s\n", '=' x 6, '=' x 80, '=' x 12, '=' x 9 , '=' x 9 , '=' x 9 , '=' x 9 );
+		printf( "%6s %${opLineLen}s %12s  %9s %9s %9s %-9s\n", '=' x 6, '=' x $opLineLen, '=' x 12, '=' x 9 , '=' x 9 , '=' x 9 , '=' x 9 );
 
 		foreach my $statLine ( @{$plans{$cursorID}->{$cursorChild}} ) {
 			my @lineElements = split(/\s+/, $statLine);
@@ -205,7 +213,7 @@ foreach my $cursorID ( sort keys %sql ) {
 			my $level = getLvl(\%tree,$cursorID,$cursorChild,$lineNumber);
 
 			printf( "%06d "  ,$lineNumber );
-			printf( "%-80s", (' ' x ($level * 2 )) . $planOp);
+			printf( "%-${opLineLen}s", (' ' x ($level * 2 )) . $planOp);
 			printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
 
 			print "\n";
@@ -230,5 +238,28 @@ sub getLvl ($$$$){
 	}
 
 	$level;
+}
+
+sub usage {
+
+	my $exitVal = shift;
+	use File::Basename;
+	my $basename = basename($0);
+	print qq{
+$basename
+
+usage: $basename - format readable execution plans found in Oracle 10046 trace files
+
+   $basename --file <filename> --op-line-len N
+
+--file         10046 tracefile name
+--op-line-len  Formatted length of operation lines - defaults to 80
+
+examples here:
+
+   $basename --file DWDB_ora_63389.trc --op-line-len 120
+};
+
+	exit eval { defined($exitVal) ? $exitVal : 0 };
 }
 

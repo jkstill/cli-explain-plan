@@ -26,7 +26,7 @@ Currently these things need fixed:
 <blockquote style='border: 2px solid #000;background-color:#D8D8D8;color:#0B0B61; white-space: pre-wrap;'>
 <pre><code><i>
 
-./plan-format.pl --file DWDB_ora_63389.trc
+./plan-format.pl --file DWDB_ora_63389.trc --op-line-len 80
 
 ########################################################################################################################
 
