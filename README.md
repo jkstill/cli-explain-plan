@@ -11,7 +11,7 @@ Unlike tkprof, this tool does not require a login to the database.
 <h3>Changes</h3>
 
 - 2016-09-30 now correctly processes cursor handle reuse in trace files
-- 2016-10-08 IO stats now appear only for the objects that incurred them
+- 2016-10-07 IO stats now appear only for the objects that incurred them
 
 <h3>To Do</h3>
 
