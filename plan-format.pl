@@ -1,11 +1,12 @@
 #!/usr/bin/env perl
 #
-# plan-proto.pl 
 # copy plan-format.pl and modify to deal with cursor ID reuse
 # Cursor parsed, executed and closed
 # The next cursor opened may use the same cursor ID
 # 2019-09-30 Jared Still jkstill@gmail.com still@pythian.com
 #            now correctly handles trace files with cursor handle (ID) reuse
+# 2019-10-07 Jared Still jkstill@gmail.com still@pythian.com
+#            print IO stats only on lines with an object ID
 
 use strict;
 use warnings;
@@ -187,9 +188,11 @@ foreach my $cursorID ( sort keys %sql ) {
 		foreach my $statLine ( @{$plans{$cursorID}->{$cursorChild}} ) {
 			my @lineElements = split(/\s+/, $statLine);
 	
-			my ($d,$lineNumber) = split(/\=/,$lineElements[2]);
-			my ($c,$rows) = split(/\=/,$lineElements[3]);
-			my ($e,$pid) = split(/\=/,$lineElements[4]);
+			my ($d,$lineNumber,$rows,$pid,$objectID);
+			($d,$lineNumber) = split(/\=/,$lineElements[2]);
+			($d,$rows) = split(/\=/,$lineElements[3]);
+			($d,$pid) = split(/\=/,$lineElements[4]);
+			($d,$objectID) = split(/\=/,$lineElements[6]);
 
 			for (0 .. 6) { shift @lineElements }
 
@@ -214,7 +217,12 @@ foreach my $cursorID ( sort keys %sql ) {
 
 			printf( "%06d "  ,$lineNumber );
 			printf( "%-${opLineLen}s", (' ' x ($level * 2 )) . $planOp);
-			printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
+			# print IO stats only for line that have an object id
+			if ($objectID > 0 ) {
+				printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
+			} else {
+				printf( " %12d  %9s %9s %9s %6.2f", $rows, '.', '.', '.', $microseconds / 1000000);
+			};
 
 			print "\n";
 
