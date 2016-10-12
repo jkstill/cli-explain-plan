@@ -17,6 +17,7 @@ Unlike tkprof, this tool does not require a login to the database.
 
 Currently these things need fixed:
 
+- Sometimes the sql is attributed to the incorrect version of the cursor handle with multiple cursor reuse
 - <strike>attribute row source operations only to the stat line that incurred them</strike>
 - <strike>version cursor IDs - cursor addresses may be reused, and this script does not yet know how to deal with that.</strike>
 
