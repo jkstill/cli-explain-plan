@@ -19,10 +19,12 @@ sub getLvl($$$$);
 my $traceFile='- no file specified';
 my $opLineLen=80;
 my $help=0;
+my $commify=0;
 
 GetOptions (
 		"file=s" => \$traceFile,
 		"op-line-len=i" => \$opLineLen,
+		"commify!" => \$commify,
 		"h|help!" => \$help
 ) or die usage(1);
 
@@ -111,6 +113,16 @@ my %plans=();
 
 my %tree=();
 
+my $formatSub;
+if ($commify) { 
+	$formatSub = \&commify;
+} else { 
+	$formatSub = sub{my ($n) = shift;return $n;};
+}
+
+my ($rowsLen, $lioLen, $blocksLen, $secondsLen) = (12,12,12,10);
+if ($commify){  ($rowsLen, $lioLen, $blocksLen) = (15,15,15,13); }
+
 foreach my $cursorID ( sort keys %sql ) {
 
 	$cursorUsed{$cursorID}++;
@@ -180,10 +192,10 @@ foreach my $cursorID ( sort keys %sql ) {
 		print "\nCursor: ${cursorID}-${cursorChild}:\n\n";
 		print "SQL:", join("\n", @{$sql{$cursorID}->{$cursorChild}}), "\n\n";
 
-		printf( "%-6s "  ,'Line#' );
+		printf( "%-6s " ,'Line#' );
 		printf( "%-${opLineLen}s", substr('Operation' . ' ' x $opLineLen,0,$opLineLen));
-		printf( " %12s  %9s %9s %9s %-9s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
-		printf( "%6s %${opLineLen}s %12s  %9s %9s %9s %-9s\n", '=' x 6, '=' x $opLineLen, '=' x 12, '=' x 9 , '=' x 9 , '=' x 9 , '=' x 9 );
+		printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
+		printf( "%6s %${opLineLen}s %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}\n", '=' x 6, '=' x $opLineLen, '=' x $rowsLen, '=' x $lioLen , '=' x  $blocksLen , '=' x $blocksLen , '=' x $secondsLen );
 
 		foreach my $statLine ( @{$plans{$cursorID}->{$cursorChild}} ) {
 			my @lineElements = split(/\s+/, $statLine);
@@ -215,13 +227,15 @@ foreach my $cursorID ( sort keys %sql ) {
 
 			my $level = getLvl(\%tree,$cursorID,$cursorChild,$lineNumber);
 
-			printf( "%06d "  ,$lineNumber );
+			printf( "%06d " ,$lineNumber );
 			printf( "%-${opLineLen}s", (' ' x ($level * 2 )) . $planOp);
 			# print IO stats only for line that have an object id
+
+
 			if ($objectID > 0 ) {
-				printf( " %12d  %9d %9d %9d %6.2f", $rows, $lio, $blocksRead, $blocksWritten, $microseconds / 1000000);
+				printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %10.2f", $formatSub->($rows), $formatSub->($lio), $formatSub->($blocksRead), $formatSub->($blocksWritten), $microseconds / 1000000);
 			} else {
-				printf( " %12d  %9s %9s %9s %6.2f", $rows, '.', '.', '.', $microseconds / 1000000);
+				printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %10.2f", $formatSub->($rows), '.', '.', '.', $microseconds / 1000000);
 			};
 
 			print "\n";
@@ -262,6 +276,7 @@ usage: $basename - format readable execution plans found in Oracle 10046 trace f
 
 --file         10046 tracefile name
 --op-line-len  Formatted length of operation lines - defaults to 80
+--commify      Add commas to numeric values
 
 examples here:
 
@@ -269,5 +284,14 @@ examples here:
 };
 
 	exit eval { defined($exitVal) ? $exitVal : 0 };
+}
+
+
+sub commify {
+	# wn - working number
+	my $wn = shift;
+	unless ( $wn =~ /^\-{0,1}[0-9]+\.{0,1}[0-9]*$/ ) { return $wn; }
+	1 while $wn =~ s/^(-?\d+)(\d{3})/$1,$2/;
+	return $wn;
 }
 
