@@ -195,7 +195,7 @@ foreach my $cursorID ( sort keys %sql ) {
 		printf( "%-6s " ,'Line#' );
 		printf( "%-${opLineLen}s", substr('Operation' . ' ' x $opLineLen,0,$opLineLen));
 		printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}s\n", 'Rows', 'LIO', 'Read', 'Written', 'Seconds');
-		printf( "%6s %${opLineLen}s %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}\n", '=' x 6, '=' x $opLineLen, '=' x $rowsLen, '=' x $lioLen , '=' x  $blocksLen , '=' x $blocksLen , '=' x $secondsLen );
+		printf( "%6s %${opLineLen}s %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}s\n", '=' x 6, '=' x $opLineLen, '=' x $rowsLen, '=' x $lioLen , '=' x  $blocksLen , '=' x $blocksLen , '=' x $secondsLen );
 
 		foreach my $statLine ( @{$plans{$cursorID}->{$cursorChild}} ) {
 			my @lineElements = split(/\s+/, $statLine);
