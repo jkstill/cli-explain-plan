@@ -121,7 +121,7 @@ if ($commify) {
 }
 
 my ($rowsLen, $lioLen, $blocksLen, $secondsLen) = (12,12,12,10);
-if ($commify){  ($rowsLen, $lioLen, $blocksLen) = (15,15,15,13); }
+if ($commify){  ($rowsLen, $lioLen, $blocksLen, $secondsLen) = (15,15,15,13,13); }
 
 foreach my $cursorID ( sort keys %sql ) {
 
@@ -233,9 +233,9 @@ foreach my $cursorID ( sort keys %sql ) {
 
 
 			if ($objectID > 0 ) {
-				printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %10.2f", $formatSub->($rows), $formatSub->($lio), $formatSub->($blocksRead), $formatSub->($blocksWritten), $microseconds / 1000000);
+				printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}s", $formatSub->($rows), $formatSub->($lio), $formatSub->($blocksRead), $formatSub->($blocksWritten), $formatSub->(sprintf('%10.2f', $microseconds / 1000000)+0));
 			} else {
-				printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %10.2f", $formatSub->($rows), '.', '.', '.', $microseconds / 1000000);
+				printf( " %${rowsLen}s %${lioLen}s %${blocksLen}s %${blocksLen}s %${secondsLen}s", $formatSub->($rows), '.', '.', '.', $formatSub->(sprintf('%10.2f', $microseconds / 1000000)+0));
 			};
 
 			print "\n";
