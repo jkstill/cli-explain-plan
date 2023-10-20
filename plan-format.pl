@@ -223,7 +223,7 @@ foreach my $cursorID ( sort keys %sql ) {
 			($d,$lio) = split(/\=/,$opStats[0]);
 			($d,$blocksRead) = split(/\=/,$opStats[1]);
 			($d,$blocksWritten) = split(/\=/,$opStats[2]);
-			($d,$microseconds) = split(/\=/,$opStats[3]);
+			($d,$microseconds) = split(/\=/,$opStats[4]);
 
 			my $level = getLvl(\%tree,$cursorID,$cursorChild,$lineNumber);
 
